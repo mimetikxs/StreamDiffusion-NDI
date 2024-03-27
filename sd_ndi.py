@@ -37,10 +37,25 @@ def np2tensor(image_np: np.ndarray) -> torch.Tensor:
     image_tensors = images.to(torch.float16)
     return image_tensors
 
-def oscprompt(address: str, *args: List[Any]) -> None:
+def process_osc(address: str, *args: List[Any]) -> None:
     if address == "/prompt":
-        global shared_message
-        shared_message = args[0]
+        global osc_prompt
+        osc_prompt = args[0]
+    elif address == "/prompt_negative":
+        global osc_prompt_negative
+        osc_prompt_negative = args[0]
+    elif address == "/guidance_scale":
+        global osc_guidance_scale
+        osc_guidance_scale = args[0]
+    elif address == "/delta":
+        global osc_delta
+        osc_delta = args[0]
+    elif address == "/seed":
+        global osc_seed
+        osc_seed = args[0]
+
+    global osc_has_new_message
+    osc_has_new_message = True
 
 def load_config(file_path):
     with open(file_path, 'r') as file:
@@ -124,12 +139,24 @@ server_address = osc_out_adress
 server_port = osc_out_port
 client = udp_client.SimpleUDPClient(server_address, server_port)
 
+client.send_message("/synced", False)
+
 server_address = osc_in_adress
 server_port = osc_in_port
-shared_message = None
+osc_has_new_message = False
+
+osc_prompt = ""
+osc_prompt_negative = ""
+osc_guidance_scale = 1.2
+osc_delta = 1
+osc_seed = 2
 
 dispatcher = Dispatcher()
-dispatcher.map("/prompt", oscprompt)
+dispatcher.map("/prompt", process_osc)
+dispatcher.map("/prompt_negative", process_osc)
+dispatcher.map("/guidance_scale", process_osc)
+dispatcher.map("/delta", process_osc)
+dispatcher.map("/seed", process_osc)
 
 server = osc_server.ThreadingOSCUDPServer(
       (server_address, server_port), dispatcher)
@@ -140,14 +167,23 @@ server_thread.start()
 # Run the stream infinitely
 try:
     while True:
-        if shared_message is not None:
+        if osc_has_new_message:
+            stream.prepare(
+                prompt = osc_prompt,
+                negative_prompt = osc_prompt_negative,
+                guidance_scale = osc_guidance_scale,
+                delta = osc_delta,
+                seed = osc_seed
+            )
+            print("Received osc:")
+            print(f"  Prompt: {osc_prompt}")
+            print(f"  Negative prompt: {osc_prompt_negative}")
+            print(f"  Guidance scale: {osc_guidance_scale}")
+            print(f"  Delta: {osc_delta}")
+            print(f"  Seed: {osc_seed}")
+            osc_has_new_message = False
 
-            prompt = str(shared_message)
-            stream.prepare(prompt)
-            # Process the received message within the loop as needed
-            print(f"Prompt: {prompt}")
-            # Reset the shared_message variable
-            shared_message = None
+            client.send_message("/synced", True)
 
         t, v, _, _ = ndi.recv_capture_v2(ndi_recv, 5000)
 
