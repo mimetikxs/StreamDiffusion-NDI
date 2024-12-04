@@ -1,7 +1,9 @@
 {
-	"sd_model": "KBlueLeaf/kohaku-v2.1",
-	"t_index_list": [25,45],
-	"engine": "../StreamDiffusion/examples/engines/KBlueLeaf/kohaku-v2.1--lcm_lora-True--tiny_vae-True--max_batch-2--min_batch-2--mode-img2img",
+	"sd_model": "stablediffusionapi/juggernaut-reborn",
+	"lora_name": "",
+	"lora_scale": 0.7,
+	"t_index_list": [35, 45],
+	"engine": "../StreamDiffusion/examples/engines/juggernaut_reborn--lcm_lora-True--tiny_vae-True--max_batch-2--min_batch-2--mode-img2img",
 	"min_batch_size": 1,
 	"max_batch_size": 2,
 	"ndi_name": "ZEPHYRUS_KMTC (OpenFrameworks SD Bridge)",

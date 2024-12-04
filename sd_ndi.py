@@ -65,6 +65,8 @@ def load_config(file_path):
 # Load config
 config_data = load_config('config.json')
 sd_model = config_data['sd_model']
+lora_name = config_data['lora_name']
+lora_scale = config_data['lora_scale']
 t_index_list = config_data['t_index_list']
 engine = config_data['engine']
 min_batch_size = config_data['min_batch_size']
@@ -95,12 +97,20 @@ stream = StreamDiffusion(
 # If the loaded model is not LCM, merge LCM
 stream.load_lcm_lora()
 stream.fuse_lora()
+# 
+if lora_name != "":
+    stream.load_lora(lora_name)
+    stream.fuse_lora(lora_scale=lora_scale)
+    print(f"Use LoRA: {lora_name} in weights {lora_scale}")
+# 
 # Use Tiny VAE for further acceleration
 stream.vae = AutoencoderTiny.from_pretrained("madebyollin/taesd").to(device=pipe.device, dtype=pipe.dtype)
 # Enable acceleration
 stream = accelerate_with_tensorrt(
     stream, engine, min_batch_size=min_batch_size ,max_batch_size=max_batch_size
 )
+# Use if not using tensorrt acceleration
+# stream.pipe.enable_xformers_memory_efficient_attention()
 
 prompt = "banana in space"
 # Prepare the stream
